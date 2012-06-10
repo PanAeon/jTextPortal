@@ -14,18 +14,16 @@ object UI extends TimeNow {
   import Math.{Pi,sin, cos, toDegrees, toRadians}
   
   val FPS = 60
-  val SIZE_OF_CELL = 10
-  val GRID_SIZE = 50
-  val SIZE_X = SIZE_OF_CELL * GRID_SIZE
-  val SIZE_Y = SIZE_OF_CELL * GRID_SIZE
+  val SIZE_X = 500
+  val SIZE_Y = 500
   
   
   
   // 
   
   val viewPoint = Point(20., 0.)
-  val portalA = Portal(0., 0., 50., Pi / 2.0  , MeColor(0.2, 0.2, 0.9))
-  val portalB = Portal(150.0, 0.0, 50.0, Pi, MeColor(0.8, 0.8, 0.0))
+  val portalA = Portal(0., 0., 50., Pi / 2.0  , MeColor(0.2, 0.2, 0.9), MeColor(0.8, 0.8, 0.0))
+  val portalB = Portal(75.0, 0.0, 50.0, -Pi / 2.0  , MeColor(0.8, 0.8, 0.0), MeColor(0.2, 0.2, 0.9))
   
  
   
@@ -60,18 +58,10 @@ object UI extends TimeNow {
 
     if (!Display.isCloseRequested ) {
     	updateFPS()
-    	
-    	
-    	
     	render()
-    	
-
     	pollInput();
-
     	Display.update()
     	Display.sync(FPS)
-    	
-    	
     	mainloop
     }
   }
@@ -99,93 +89,76 @@ object UI extends TimeNow {
 	  val drawPortalA = portalA.checkViewPoint(viewPoint.x, viewPoint.y)
 	  val drawPortalB = portalB.checkViewPoint(viewPoint.x, viewPoint.y)
 
-    // **************
-    // portalA:
-    // **************
-    if (drawPortalA) {
-
-      glEnable(GL_STENCIL_TEST);
-      glStencilFunc(GL_ALWAYS, 1, 1);
-      glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-
-      // mask
-
-      portalA.drawAreaAsSeenFrom(viewPoint.x, viewPoint.y)
-
-      glStencilFunc(GL_EQUAL, 1, 1); // We Draw Only Where The Stencil Is 1
-      // (I.E. Where The Floor Was Drawn)
-      glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP); // Don't Change The Stencil Buffer
-
-      // picture
-      glColor3f(1.0f, 0f, 0f)
-      // glRecti(0,0, 400, 400);
-      glScaled(1.0, -1.0, 1.0)
-      glTranslated(portalA.x, portalA.y, 0.f)
+	  drawPortal(portalA, portalB, viewPoint, 1)
+	  drawPortal(portalB, portalA, viewPoint, 1)
+  }
+  
+  
+  def portalTransform(portalA:Portal, portalB : Portal) {
+   // glScaled(1.0, -1.0, 1.0)
+    glTranslated(portalA.x, portalA.y, 0.f)
       glRotated(Math.toDegrees(Pi + portalA.angle - portalB.angle), 0, 0, 1);
       glTranslated(-portalB.x, -portalB.y, 0.f)
-     
-      drawScene()
+  }
+  
+  def calculateNewViewPoint(portalA : Portal,portalB : Portal, viewPoint : Point) : Point = {
+   // val newX = 2 * portalB.x - viewPoint.x;
+   // val newY = 2 * portalB.y - viewPoint.y;
+   // Point(newX, newY)
+    viewPoint
+  }
 
-      glDisable(GL_STENCIL_TEST);
+  def drawPortal(portalA: Portal, portalB: Portal, viewPoint: Point, order: Int): Unit = {
 
+    if (order < 7) {
+      val drawPortalA = portalA.checkViewPoint(viewPoint.x, viewPoint.y)
+
+      if (drawPortalA) {
+
+        glPushMatrix();
+
+        if (order == 1) {
+        glClear(GL_STENCIL_BUFFER_BIT);
+        glClearStencil(0);
+        
+
+        glEnable(GL_STENCIL_TEST);
+        glStencilFunc(GL_ALWAYS, 1, 1);
+        //glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+        
+        }
+        glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
+        // mask
+
+        portalA.drawAreaAsSeenFrom(viewPoint.x, viewPoint.y)
+
+        glStencilFunc(GL_EQUAL, order, order); // We Draw Only Where The Stencil Is 1
+
+        glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP); // Don't Change The Stencil Buffer
+
+        // picture
+        glColor3f(1.0f, 0f, 0f)
+
+        portalTransform(portalA, portalB);
+
+        drawScene()
+        val newViewPoint = calculateNewViewPoint(portalA,portalB, viewPoint)
+        drawPortal(portalA, portalB, newViewPoint, order + 1);
+        if (order == 1) {
+           glDisable(GL_STENCIL_TEST);
+        }
+       
+
+        glPopMatrix();
+        
+          // probably draw parent boundary && area should be here ...
+     //   val isInverseColor = order % 2 == 0;
+       if (order == 1)
+        portalA.drawTransparentAreaAsSeenFrom(viewPoint.x, viewPoint.y)
+        portalA.drawBoundaryAsSeenFrom(viewPoint.x, viewPoint.y)
+
+      }
     }
-	  
-	 // ************
-	 // now portal B
-	 // *************
-	if (drawPortalB) {
-	  glClear(GL_STENCIL_BUFFER_BIT);
-	  
-	  glClearStencil(0);
-
-	  glLoadIdentity();
-	  glTranslatef(SIZE_X.toFloat /2, SIZE_Y.toFloat / 2, 0.f)
-	  
-	  
-	  
-	  glEnable(GL_STENCIL_TEST);                    
-	  glStencilFunc(GL_ALWAYS, 1, 1);                    
-	  glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-	  
-	  portalB.drawAreaAsSeenFrom(viewPoint.x, viewPoint.y)
-	  
-	    glStencilFunc(GL_EQUAL, 1, 1);                      
-                                    						
-	  glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);  
-	  glColor3f(1.0f, 0f, 0f)
-	  
-	  glScaled(1.0, -1.0, 1.0)
-	  glTranslated(portalB.x, portalB.y, 0.f)
-	  glRotated(Math.toDegrees(portalB.angle - portalA.angle) , 0, 0, 1);
-	  glTranslated(-portalA.x, -portalA.y, 0.f)
-	  //glTranslatef(0.0f, -portalB.x.toFloat, 0.f)
-	 drawScene()
-	  
-	  glDisable(GL_STENCIL_TEST); 
-	}
-	  // *****************
-	  // Now boundaries
-	  // *****************
-	  
-	  glClearStencil(0);
-	  
-	  glLoadIdentity();
-	  glTranslatef(SIZE_X.toFloat /2, SIZE_Y.toFloat / 2, 0.f)
-	  
-	  if (drawPortalA) {
-		  portalA.drawTransparentAreaAsSeenFrom(viewPoint.x, viewPoint.y)
-		   
-		  portalA.drawBoundaryAsSeenFrom(viewPoint.x, viewPoint.y)
-	  }
-	  
-	  if (drawPortalB) {
-	  portalB.drawTransparentAreaAsSeenFrom(viewPoint.x, viewPoint.y)
-	  portalB.drawBoundaryAsSeenFrom(viewPoint.x, viewPoint.y)
-	  }
-	  
-	  
-	  
-	  
   }
   
   
@@ -298,7 +271,13 @@ object UI extends TimeNow {
 case class Point(var x : Double, var y : Double)
 case class MeColor(val r : Double, val g : Double, val b : Double)
 
-case class Portal(val x : Double, val y : Double, val length : Double, val angle : Double, val color : MeColor) {
+case class Portal(
+    val x : Double,
+    val y : Double,
+    val length : Double,
+    val angle : Double,
+    val color : MeColor,
+    val companionColor : MeColor) {
   import Math.{Pi,sin, cos, toDegrees, toRadians}
   import scalala.scalar._;
    import scalala.tensor.::;
@@ -351,18 +330,6 @@ case class Portal(val x : Double, val y : Double, val length : Double, val angle
     val xB1 = xB + signXb * HW * 2
     val yB1 = if (xB != x0) boundaryB(xB1) else HH * signYb
     
-    
-    
-   
-    // now we need take into account the boundary
-    // we'll add additional points at the boundary
-    
-
-    // now return points in proper order
-  // val foo0 = (xA, yA) :: (xA1, yA1) :: Nil
-  //  val foo1 = (xB1, yB1) :: (xB, yB) :: Nil
-  //  foo0 ::: getCorners(x0,y0,xA,yA,xB, yB, xA1, yA1, xB1, yB1) ::: foo1
-   // foo0 ::: foo1
     getCorners(x0,y0,xA,yA,xB, yB, xA1, yA1, xB1, yB1)
   }
   
@@ -534,13 +501,6 @@ case class Portal(val x : Double, val y : Double, val length : Double, val angle
       val bToIt = getAngleSign(center, b, it)
       
       (angleToA == aToIt) && (angleToB == bToIt) && (getAngleSign(a, b, center) != getAngleSign(a, b, it))
-  //     (isRightAngle(center, b, it) && isRightAngle(center, it, a))// ||
- //      (isRightAngle(it,b, a) && !isRightAngle(it, a, b))
- //      val a1 = getAngle(a-center, it-center)
- ////      val a2 = getAngle(it-center, b-center)
-  //    if (abs(alpha - Pi) < 0.1)
-   //     false
-  //      else abs(a1 + a2 - alpha) < 0.1
     } 
     
     val foo = DenseVector(xA, yA) :: DenseVector(xA1, yA1) :: Nil
@@ -549,15 +509,6 @@ case class Portal(val x : Double, val y : Double, val length : Double, val angle
     
     val t = foo ::: myCorners ::: bar
     
-//    println("->>>")
-//    for (too <- t) {
-//      print(too)
-//      println(";")
-//    }
-//    println("-<<<<")
-    
-   // z =  foo ::: myCorners.sorted(new DistanceOrdering(foo(1))) ::: bar
-   // val z = t.head :: arrangeHull(t.head, t.tail) 
     val z = fuckingConvexHull(t)
     z.map(c => (c(0) , c(1)))
    
@@ -576,10 +527,15 @@ case class Portal(val x : Double, val y : Double, val length : Double, val angle
     glEnd()
   }
   
-  def drawTransparentAreaAsSeenFrom(x0: Double, y0:Double) {
+  def drawTransparentAreaAsSeenFrom(x0: Double, y0:Double, inverseColor:Boolean = false) {
     import org.lwjgl.opengl.GL11._
     
-    glColor4d(color.r, color.g, color.b, 0.3);
+    if (inverseColor) {
+       glColor4d(companionColor.r, companionColor.g, companionColor.b, 0.3);
+    } else {
+       glColor4d(color.r, color.g, color.b, 0.3);
+    }
+   
     
      glBegin(GL_POLYGON)
     	for (p <- boundary(x0, y0))
@@ -587,10 +543,14 @@ case class Portal(val x : Double, val y : Double, val length : Double, val angle
     glEnd()
   }
   
-  def drawBoundaryAsSeenFrom(x0 : Double, y0 : Double) {
+  def drawBoundaryAsSeenFrom(x0 : Double, y0 : Double, inverseColor:Boolean = false) {
     import org.lwjgl.opengl.GL11._
     
-    glColor3d(color.r, color.g, color.b);
+   if (inverseColor) {
+       glColor4d(companionColor.r, companionColor.g, companionColor.b, 0.3);
+    } else {
+       glColor4d(color.r, color.g, color.b, 0.3);
+    }
      glLineWidth(3.0f)
      glBegin(GL_LINE_STRIP)
     	for (p <- boundary(x0, y0))
