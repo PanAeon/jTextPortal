@@ -30,4 +30,7 @@ libraryDependencies += "org.scalala" %% "scalala" % "1.0.0.RC2"
 
 libraryDependencies += "org.scalatest" %% "scalatest" % "1.7.1" % "test"
 
+libraryDependencies += "org.scala-lang" % "scala-swing" % "2.9.1"
+
+
 seq(lwjglSettings: _*)
