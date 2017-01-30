@@ -1,4 +1,4 @@
-package stencil
+package utils
 
 /*******************************************************************************
  * Copyright 2015 Serf Productions, LLC
@@ -37,6 +37,7 @@ import org.lwjgl.glfw.{
   GLFWWindowRefreshCallbackI,
   GLFWWindowSizeCallbackI
 }
+import scala.language.implicitConversions
 
 object CallbackHelpers {
   import scala.language.implicitConversions

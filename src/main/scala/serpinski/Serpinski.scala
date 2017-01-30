@@ -25,70 +25,29 @@ import org.lwjgl._, glfw._, opengl._
 import Callbacks._, GLFW._, GL11._
 
 import org.lwjgl.system.MemoryUtil._
+import utils.OpenGLApp
 
 // VM args: -Djava.library.path=/home/vitalii/lab/jTextPortal/lib/linux
-object Serpinski extends App {
-  import stencil.CallbackHelpers._
+object Serpinski extends App with OpenGLApp {
+  
 
-  private val WIDTH  = 1200
-  private val HEIGHT = 800
+  override val Width  = 1200
+  override val Height = 800
   
   val FPS = 60
-
 
   var rtri = 34f;
 
   var rquad = 0f;
   
  val pyramid = Pyra(0.0f, 0.0f, 0.0f , 1.0f)
-  var nextGen = pyramid::Nil
-  var nextInvGen = pyramid::Nil
+ var nextGen = pyramid::Nil
+ var nextInvGen = pyramid::Nil
 
-  def run() {
-    try {
-      GLFWErrorCallback.createPrint(System.err).set()
 
-      val window = init()
-      loop(window)
 
-      glfwFreeCallbacks(window)
-      glfwDestroyWindow(window)
-    } finally {
-      glfwTerminate() // destroys all remaining windows, cursors, etc...
-      glfwSetErrorCallback(null).free()
-    }
-  }
-
-  private def init(): Long = {
-    if (!glfwInit())
-      throw new IllegalStateException("Unable to initialize GLFW")
-
-    glfwDefaultWindowHints()
-    glfwWindowHint(GLFW_VISIBLE,   GLFW_FALSE) // hiding the window
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE) // window resizing not allowed
-
-    val window = glfwCreateWindow(WIDTH, HEIGHT, "LWJGL in Scala", NULL, NULL)
-    if (window == NULL)
-      throw new RuntimeException("Failed to create the GLFW window")
-
-    glfwSetKeyCallback(window, keyHandler _)
-
-    val vidMode = glfwGetVideoMode(glfwGetPrimaryMonitor())
-
-    glfwSetWindowPos (
-      window,
-      (vidMode. width() -  WIDTH) / 2,
-      (vidMode.height() - HEIGHT) / 2
-    )
-
-    glfwMakeContextCurrent(window)
-    glfwSwapInterval(1)
-    glfwShowWindow(window)
-
-    window
-  }
   
-    def initGL() {
+    override def initGL() {
 
    // glEnable(GL_TEXTURE_2D); // Enable Texture Mapping
     
@@ -105,7 +64,7 @@ object Serpinski extends App {
     glLoadIdentity(); // Reset The Projection Matrix
 
     // Calculate The Aspect Ratio Of The Window
-    gluPerspective(45.0, WIDTH.toDouble / HEIGHT.toDouble, 0.1f, 100.0f);
+    gluPerspective(45.0, Width.toDouble / Height.toDouble, 0.1f, 100.0f);
     glMatrixMode(GL_MODELVIEW); // Select The Modelview Matrix
 
     // Really Nice Perspective Calculations
@@ -128,25 +87,9 @@ object Serpinski extends App {
     glFrustum(xmin, xmax, ymin, ymax, zNear, zFar);
   }
 
-  private def loop(window: Long) {
-    GL.createCapabilities()
 
-    updateGenerations(5)
-    glClearColor(0f, 0f, 0f, 0f)
-    initGL()
-    // init
-
-    while (!glfwWindowShouldClose(window)) {
-      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-      render()
-      //main loop
-      glfwSwapBuffers(window)
-      glfwPollEvents()
-
-    }
-  }
   
-    def render() {
+    override def render() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
 
@@ -166,22 +109,55 @@ object Serpinski extends App {
    nextGen.foreach(_.draw())
  
 
-    rtri += 0.6f; // Increase The Rotation Variable For The Triangle
+//    rtri += 0.6f; // Increase The Rotation Variable For The Triangle
    // rquad -= 0.15f; // Decrease The Rotation Variable For The Quad 
 
   }
     
-  var lastMouseX = -1
-  var lastMouseY = -1
+  var lastMouseX = -1d
+  var lastMouseY = -1d
   var mousePressed = false
 
-  private def keyHandler (
+  override def keyHandler (
     window: Long, key: Int, scanCode: Int, action: Int, mods: Int
   ): Unit = {
+    if (action == GLFW_RELEASE) {
+      key match {
+        case GLFW_KEY_1 =>  updateGenerations(1)
+        case GLFW_KEY_2 =>  updateGenerations(2)
+        case GLFW_KEY_3 =>  updateGenerations(3)
+        case GLFW_KEY_4 =>  updateGenerations(4)
+        case GLFW_KEY_5 =>  updateGenerations(5)
+        case GLFW_KEY_6 =>  updateGenerations(6)
+        case GLFW_KEY_7 =>  updateGenerations(7)
+        case GLFW_KEY_8 =>  updateGenerations(8)
+        case GLFW_KEY_9 =>  updateGenerations(9)
+        case GLFW_KEY_0 =>  updateGenerations(10)
+        case _ =>
+      }
+    }
     if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE)
       glfwSetWindowShouldClose(window, true)
   }
+  
+  override def cursorPosHandler(window:Long, x:Double, y:Double) : Unit = {
+    
+    if (mousePressed) {
+        rtri += (x - lastMouseX).toFloat
+    }
+    lastMouseX = x
+    lastMouseY = y
+  }
+  
+  override def mouseButtonHandler(window:Long, button:Int, action:Int, mods:Int): Unit = {
+    if (button == GLFW_MOUSE_BUTTON_1 && action == GLFW_PRESS) {
+      mousePressed = true
+    } else if (button == GLFW_MOUSE_BUTTON_1 && action == GLFW_RELEASE) {
+      mousePressed = false
+    }
+  }
 
+  updateGenerations(3)
   run()
   
 
@@ -215,102 +191,10 @@ object Serpinski extends App {
 
 
 
-//package serpinski
-//
-//import portal.util.TimeNow
-//import org.lwjgl.opengl.Display
-//import org.lwjgl.opengl.DisplayMode
-//import scala.annotation.tailrec
-//import org.lwjgl.input.Mouse
-//import org.lwjgl.input.Keyboard
-//import java.nio.FloatBuffer
-//import org.lwjgl.BufferUtils
-//
-//object Serpinski extends TimeNow {
-//
-//  import org.lwjgl.opengl.GL11._
 
-//
-//  def main(args: Array[String]): Unit = {
-//    Display.setDisplayMode(new DisplayMode(WIDTH, HEIGHT))
-//    Display.create()
-//
-//    initGL()
-//
-//    mainloop
-//  }
-//
 
-//  
-//
 
-//  
-//
-//
-//  @tailrec
-//  def mainloop {
-//
-//    if (!Display.isCloseRequested) {
-//      updateFPS()
-//
-//      render()
-//
-//      pollInput();
-//
-//      Display.update()
-//      Display.sync(FPS)
-//
-//      mainloop
-//    }
-//  }
-//
 
-//
-//  
-
-//  
-//  def pollInput() {
-//	 
-//    if (lastMouseX == Mouse.getX && lastMouseY == Mouse.getY && Mouse.isButtonDown(0)) {
-//      // ignore
-//    } else if (Mouse.isButtonDown(0)){
-//      //civilization.flip(Mouse.getX / SIZE_OF_CELL, Mouse.getY / SIZE_OF_CELL)
-//      rtri += Mouse.getX - lastMouseX
-//      lastMouseX = Mouse.getX
-//      lastMouseY = Mouse.getY
-//    }
-//    
-//    if (lastMouseX != -1 && !Mouse.isButtonDown(0)) {
-//      lastMouseX = -1
-//      lastMouseY = -1
-//      
-//    }
-//    
-//    if (Keyboard.isKeyDown(Keyboard.KEY_1)) {
-//      updateGenerations(0)
-//    } else if (Keyboard.isKeyDown(Keyboard.KEY_2)) {
-//      updateGenerations(1)
-//    }else if (Keyboard.isKeyDown(Keyboard.KEY_3)) {
-//      updateGenerations(2)
-//    }else if (Keyboard.isKeyDown(Keyboard.KEY_4)) {
-//      updateGenerations(3)
-//    }else if (Keyboard.isKeyDown(Keyboard.KEY_5)) {
-//      updateGenerations(4)
-//    }else if (Keyboard.isKeyDown(Keyboard.KEY_6)) {
-//      updateGenerations(5)
-//    }else if (Keyboard.isKeyDown(Keyboard.KEY_7)) {
-//      updateGenerations(6)
-//    }else if (Keyboard.isKeyDown(Keyboard.KEY_8)) {
-//      updateGenerations(7)
-//    }else if (Keyboard.isKeyDown(Keyboard.KEY_9)) {
-//      updateGenerations(8)
-//    }else if (Keyboard.isKeyDown(Keyboard.KEY_0)) {
-//      updateGenerations(9)
-//    }
-//    
-//  }
-//
-//}
 
 
 
