@@ -5,6 +5,7 @@ import Callbacks._, GLFW._, GL11._
 
 import org.lwjgl.system.MemoryUtil._
 
+//-Djava.library.path=/home/vitalii/lab/jTextPortal/lib/linux
 trait OpenGLApp {
   import CallbackHelpers._
   
